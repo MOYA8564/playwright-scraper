@@ -2,10 +2,27 @@ import express from "express";
 import { chromium } from "playwright";
 
 const app = express();
+
 app.use(express.json({ limit: "1mb" }));
 
+app.use((req, res, next) => {
+  console.log(`[REQ] ${req.method} ${req.url}`);
+  next();
+});
+
 app.get("/", (_req, res) => {
-  res.json({ ok: true, service: "playwright-scraper" });
+  return res.status(200).json({
+    ok: true,
+    service: "playwright-scraper",
+    message: "root ok",
+  });
+});
+
+app.get("/health", (_req, res) => {
+  return res.status(200).json({
+    ok: true,
+    health: "ok",
+  });
 });
 
 app.post("/scrape", async (req, res) => {
@@ -41,12 +58,14 @@ app.post("/scrape", async (req, res) => {
 
     const html = await page.content();
 
-    return res.json({
+    return res.status(200).json({
       ok: true,
       html,
       finalUrl: page.url(),
     });
   } catch (error) {
+    console.error("[SCRAPE ERROR]", error);
+
     return res.status(500).json({
       ok: false,
       message: error instanceof Error ? error.message : "Error desconocido",
@@ -58,7 +77,12 @@ app.post("/scrape", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const port = Number(process.env.PORT || 8080);
+
+console.log("Iniciando servicio Playwright...");
+console.log("PORT detectado:", process.env.PORT);
+console.log("Puerto final:", port);
+
+app.listen(port, "0.0.0.0", () => {
   console.log(`Playwright scraper escuchando en puerto ${port}`);
 });
