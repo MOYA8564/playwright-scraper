@@ -44,16 +44,33 @@ app.post("/scrape", async (req, res) => {
   try {
     browser = await chromium.launch({
       headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-blink-features=AutomationControlled",
+        "--disable-dev-shm-usage",
+      ],
     });
 
     const context = await browser.newContext({
       locale: "es-ES",
+      timezoneId: "Europe/Madrid",
+      ignoreHTTPSErrors: true,
+      viewport: { width: 1366, height: 768 },
       userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+      extraHTTPHeaders: {
+        "Accept-Language": "es-ES,es;q=0.9",
+        "Upgrade-Insecure-Requests": "1",
+      },
     });
 
-    // 👉 AQUÍ METEMOS COOKIES
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", {
+        get: () => undefined,
+      });
+    });
+
     if (cookies.length > 0) {
       await context.addCookies(cookies);
     }
@@ -61,20 +78,20 @@ app.post("/scrape", async (req, res) => {
     const page = await context.newPage();
 
     await page.goto(url, {
-      waitUntil: "domcontentloaded",
+      waitUntil: "load",
       timeout: 60000,
     });
 
-    await page.waitForLoadState("networkidle", { timeout: 30000 }).catch(() => {});
+    await page.waitForTimeout(4000);
 
     const html = await page.content();
 
     return res.json({
       ok: true,
       finalUrl: page.url(),
-      htmlLength: html.length
+      title: await page.title(),
+      htmlLength: html.length,
     });
-
   } catch (error) {
     return res.status(500).json({
       ok: false,
@@ -87,14 +104,7 @@ app.post("/scrape", async (req, res) => {
   }
 });
 
-console.log("Iniciando servicio Playwright...");
-console.log("PORT detectado:", process.env.PORT);
-
 const port = Number(process.env.PORT || 8080);
-
-console.log("Iniciando servicio Playwright...");
-console.log("PORT detectado:", process.env.PORT);
-console.log("Puerto final:", port);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Playwright scraper escuchando en puerto ${port}`);
