@@ -86,6 +86,10 @@ console.log("PORT detectado:", process.env.PORT);
 
 const port = Number(process.env.PORT || 8080);
 
+console.log("Iniciando servicio Playwright...");
+console.log("PORT detectado:", process.env.PORT);
+console.log("Puerto final:", port);
+
 app.listen(port, "0.0.0.0", () => {
   console.log(`Playwright scraper escuchando en puerto ${port}`);
 });
