@@ -25,6 +25,10 @@ app.get("/health", (_req, res) => {
   });
 });
 
+app.get("/favicon.ico", (_req, res) => {
+  return res.status(204).end();
+});
+
 app.post("/scrape", async (req, res) => {
   const { url } = req.body ?? {};
 
@@ -77,11 +81,10 @@ app.post("/scrape", async (req, res) => {
   }
 });
 
-const port = Number(process.env.PORT || 8080);
-
 console.log("Iniciando servicio Playwright...");
 console.log("PORT detectado:", process.env.PORT);
-console.log("Puerto final:", port);
+
+const port = Number(process.env.PORT || 8080);
 
 app.listen(port, "0.0.0.0", () => {
   console.log(`Playwright scraper escuchando en puerto ${port}`);
