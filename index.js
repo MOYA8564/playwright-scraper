@@ -30,7 +30,7 @@ app.get("/favicon.ico", (_req, res) => {
 });
 
 app.post("/scrape", async (req, res) => {
-  const { url } = req.body ?? {};
+  const { url, cookies = [] } = req.body ?? {};
 
   if (!url) {
     return res.status(400).json({
@@ -47,11 +47,18 @@ app.post("/scrape", async (req, res) => {
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
-    const page = await browser.newPage({
+    const context = await browser.newContext({
       locale: "es-ES",
       userAgent:
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     });
+
+    // 👉 AQUÍ METEMOS COOKIES
+    if (cookies.length > 0) {
+      await context.addCookies(cookies);
+    }
+
+    const page = await context.newPage();
 
     await page.goto(url, {
       waitUntil: "domcontentloaded",
@@ -62,14 +69,13 @@ app.post("/scrape", async (req, res) => {
 
     const html = await page.content();
 
-    return res.status(200).json({
+    return res.json({
       ok: true,
-      html,
       finalUrl: page.url(),
+      htmlLength: html.length
     });
-  } catch (error) {
-    console.error("[SCRAPE ERROR]", error);
 
+  } catch (error) {
     return res.status(500).json({
       ok: false,
       message: error instanceof Error ? error.message : "Error desconocido",
