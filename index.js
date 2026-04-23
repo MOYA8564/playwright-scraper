@@ -30,7 +30,7 @@ app.get("/favicon.ico", (_req, res) => {
 });
 
 app.post("/scrape", async (req, res) => {
-  const { url, cookies = [] } = req.body ?? {};
+  const { url, cookies = [], storageState = null } = req.body ?? {};
 
   if (!url) {
     return res.status(400).json({
@@ -52,7 +52,7 @@ app.post("/scrape", async (req, res) => {
       ],
     });
 
-    const context = await browser.newContext({
+    const contextOptions = {
       locale: "es-ES",
       timezoneId: "Europe/Madrid",
       ignoreHTTPSErrors: true,
@@ -63,7 +63,13 @@ app.post("/scrape", async (req, res) => {
         "Accept-Language": "es-ES,es;q=0.9",
         "Upgrade-Insecure-Requests": "1",
       },
-    });
+    };
+
+    if (storageState) {
+      contextOptions.storageState = storageState;
+    }
+
+    const context = await browser.newContext(contextOptions);
 
     await context.addInitScript(() => {
       Object.defineProperty(navigator, "webdriver", {
@@ -71,7 +77,7 @@ app.post("/scrape", async (req, res) => {
       });
     });
 
-    if (cookies.length > 0) {
+    if (!storageState && cookies.length > 0) {
       await context.addCookies(cookies);
     }
 
